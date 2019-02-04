@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_FreeTouch.h>
+#include <Quest_Audio.h>
 
 const uint32_t BUTTON_PINS[] = {A1, A2, A3, A4, A5};
 const uint8_t BUTTON_COUNT = sizeof(BUTTON_PINS) / sizeof(BUTTON_PINS[0]);
@@ -27,6 +28,10 @@ GameState gameState;
 
 const uint16_t PIXEL_COUNT = 7;
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXEL_COUNT, 12, NEO_GRB + NEO_KHZ800);
+
+Quest_Audio audio = Quest_Audio();
+const uint8_t SD_CS_PIN = 10;
+const char *SFX_CORRECT_BUTTON = "WAND-S~1.WAV";
 
 void setupButtons()
 {
@@ -70,11 +75,17 @@ void setupLights()
     pixels.show();
 }
 
+void setupSound()
+{
+    audio.begin(SD_CS_PIN);
+}
+
 void setup()
 {
     setupButtons();
     setupPassword();
     setupLights();
+    setupSound();
 
     gameState = WaitingForPlayer;
 }
@@ -201,6 +212,9 @@ void loop()
 
         passwordPosition++;
         updateLightsForProgress();
+
+        audio.playSound(SFX_CORRECT_BUTTON, 128);
+
         if (passwordPosition < PASSWORD_LENGTH)
         {
             updateGameState(WaitingForRelease);
