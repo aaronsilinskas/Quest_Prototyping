@@ -6,14 +6,14 @@
 #define KEY_MAX_LENGTH 10
 uint16_t key[KEY_MAX_LENGTH];
 
-void randomizeKey()
+void setupTests()
 {
+    randomSeed(analogRead(0));
     for (uint8_t i = 0; i < KEY_MAX_LENGTH; i++)
     {
         key[i] = random(0xFFFF);
     }
 }
-
 void test_locked_by_default()
 {
     Quest_ComboLock cl = Quest_ComboLock(key, KEY_MAX_LENGTH);
@@ -22,9 +22,7 @@ void test_locked_by_default()
 
 void test_valid_steps_progress_key()
 {
-    randomizeKey();
     Quest_ComboLock cl = Quest_ComboLock(key, KEY_MAX_LENGTH);
-    // enter valid steps except the last one
     for (uint8_t step = 0; step < KEY_MAX_LENGTH; step++)
     {
         uint16_t validStep = key[step];
@@ -33,18 +31,38 @@ void test_valid_steps_progress_key()
     }
 }
 
+void test_invalid_step_resets_key()
+{
+    Quest_ComboLock cl = Quest_ComboLock(key, KEY_MAX_LENGTH);
+    uint8_t stepToChooseInvalidValue = random(KEY_MAX_LENGTH);
+
+    // choose valid values until an invalid value will be tests
+    for (uint8_t step = 0; step < stepToChooseInvalidValue; step++)
+    {
+        uint16_t validStep = key[step];
+        TEST_ASSERT_TRUE(cl.tryStep(validStep));
+    }
+
+    // choose an invalid value
+    uint16_t invalidStep = !(key[stepToChooseInvalidValue]);
+    TEST_ASSERT_FALSE(cl.tryStep(invalidStep));
+    TEST_ASSERT_EQUAL(0, cl.keyPosition);
+}
+
 // key is locked until key position = key length
 // key length is available for percentage progress
+// tryStep after last fails and resets
 
 void setup()
 {
     delay(4000);
-    randomSeed(analogRead(0));
+    setupTests();
 
     UNITY_BEGIN();
 
     RUN_TEST(test_locked_by_default);
     RUN_TEST(test_valid_steps_progress_key);
+    RUN_TEST(test_invalid_step_resets_key);
 
     UNITY_END();
 }
