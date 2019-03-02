@@ -13,6 +13,10 @@ bool Quest_ComboLock::tryStep(uint16_t value)
     if (value == key[keyPosition])
     {
         keyPosition++;
+        if (keyPosition == keyLength)
+        {
+            unlocked = true;
+        }
         return true;
     }
 

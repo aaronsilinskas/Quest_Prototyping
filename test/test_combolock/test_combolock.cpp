@@ -49,6 +49,20 @@ void test_invalid_step_resets_key()
     TEST_ASSERT_EQUAL(0, cl.keyPosition);
 }
 
+void test_all_valid_steps_unlock_key()
+{
+    Quest_ComboLock cl = Quest_ComboLock(key, KEY_MAX_LENGTH);
+    // try valid values for all but the last step
+    for (uint8_t step = 0; step < KEY_MAX_LENGTH - 1; step++)
+    {
+        cl.tryStep(key[step]);
+        TEST_ASSERT_FALSE(cl.unlocked);
+    }
+    // try last step
+    cl.tryStep(key[KEY_MAX_LENGTH - 1]);
+    TEST_ASSERT_TRUE(cl.unlocked);
+}
+
 // key is locked until key position = key length
 // key length is available for percentage progress
 // tryStep after last fails and resets
@@ -63,6 +77,7 @@ void setup()
     RUN_TEST(test_locked_by_default);
     RUN_TEST(test_valid_steps_progress_key);
     RUN_TEST(test_invalid_step_resets_key);
+    RUN_TEST(test_all_valid_steps_unlock_key);
 
     UNITY_END();
 }
