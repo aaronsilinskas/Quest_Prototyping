@@ -10,6 +10,11 @@ Quest_ComboLock::Quest_ComboLock(uint16_t *key, uint8_t keyLength)
 
 bool Quest_ComboLock::tryStep(uint16_t value)
 {
+    if (unlocked)
+    {
+        return false;
+    }
+
     if (value == key[keyPosition])
     {
         keyPosition++;
