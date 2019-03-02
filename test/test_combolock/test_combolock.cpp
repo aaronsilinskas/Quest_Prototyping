@@ -79,6 +79,29 @@ void test_trying_after_unlock_does_nothing()
     TEST_ASSERT_TRUE(cl.unlocked);
 }
 
+void test_force_unlock()
+{
+    Quest_ComboLock cl = Quest_ComboLock(key, KEY_MAX_LENGTH);
+    cl.unlock();
+
+    TEST_ASSERT_TRUE(cl.unlocked);
+    TEST_ASSERT_EQUAL(cl.keyLength, cl.keyPosition);
+}
+
+void test_force_lock()
+{
+    Quest_ComboLock cl = Quest_ComboLock(key, KEY_MAX_LENGTH);
+    // enter values to unlock
+    for (uint8_t step = 0; step < KEY_MAX_LENGTH; step++)
+    {
+        cl.tryStep(key[step]);
+    }
+
+    cl.lock();
+    TEST_ASSERT_FALSE(cl.unlocked);
+    TEST_ASSERT_EQUAL(0, cl.keyPosition);
+}
+
 void setup()
 {
     delay(4000);
@@ -91,6 +114,8 @@ void setup()
     RUN_TEST(test_invalid_step_resets_key);
     RUN_TEST(test_all_valid_steps_unlock_key);
     RUN_TEST(test_trying_after_unlock_does_nothing);
+    RUN_TEST(test_force_unlock);
+    RUN_TEST(test_force_lock);
 
     UNITY_END();
 }

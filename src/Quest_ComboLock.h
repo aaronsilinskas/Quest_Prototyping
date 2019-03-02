@@ -12,6 +12,8 @@ public:
 
   Quest_ComboLock(uint16_t *key, uint8_t keyLength);
   bool tryStep(uint16_t value);
+  void unlock();
+  void lock();
 
 private:
   uint16_t *key;

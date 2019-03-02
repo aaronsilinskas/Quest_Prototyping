@@ -28,3 +28,15 @@ bool Quest_ComboLock::tryStep(uint16_t value)
     keyPosition = 0;
     return false;
 }
+
+void Quest_ComboLock::unlock()
+{
+    unlocked = true;
+    keyPosition = keyLength;
+}
+
+void Quest_ComboLock::lock()
+{
+    unlocked = false;
+    keyPosition = 0;
+}
