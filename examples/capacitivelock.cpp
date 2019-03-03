@@ -8,13 +8,12 @@ const uint8_t BUTTON_COUNT = sizeof(BUTTON_PINS) / sizeof(BUTTON_PINS[0]);
 const uint16_t TOUCH_THRESHOLD = 150;
 Adafruit_FreeTouch qts[BUTTON_COUNT];
 uint16_t restingButtonMeasurement[BUTTON_COUNT];
-uint16_t buttonState;
 
 const uint8_t EVENT_QUEUE_SIZE = 10;
 Event eventQueueBuffer[EVENT_QUEUE_SIZE];
 Quest_EventQueue eventQueue = Quest_EventQueue(eventQueueBuffer, EVENT_QUEUE_SIZE, 0, 0);
 
-const uint8_t PASSWORD_LENGTH = 4;
+const uint8_t PASSWORD_LENGTH = 2;
 uint16_t password[PASSWORD_LENGTH];
 Quest_ComboLock lock = Quest_ComboLock(password, PASSWORD_LENGTH, &eventQueue);
 
@@ -36,7 +35,6 @@ void setupButtons()
             restingButtonMeasurement[i] = qts[i].measure();
         }
     }
-    buttonState = 0;
 }
 
 void setupLock()
@@ -68,9 +66,9 @@ void setup()
     setupLights();
 }
 
-void updateButtonState()
+uint16_t readButtonState()
 {
-    buttonState = 0;
+    uint16_t buttonState = 0;
     for (uint8_t i = 0; i < BUTTON_COUNT; i++)
     {
         buttonState <<= 1;
@@ -94,6 +92,8 @@ void updateButtonState()
         Serial.print(F("Button state: "));
         Serial.println(buttonState, BIN);
     }
+
+    return buttonState;
 }
 
 void fadeInPixels(uint64_t transitionTime, uint16_t firstPixel, uint16_t pixelCount, uint8_t rT, uint8_t gT, uint8_t bT)
@@ -142,6 +142,13 @@ void updateLightsForReset()
 
 void updateLightsForUnlock()
 {
+    for (uint16_t i = 0; i < PIXEL_COUNT; i++)
+    {
+        pixels.setPixelColor(i, 128, 128, 128);
+        pixels.show();
+        delay(500);
+        pixels.setPixelColor(i, 0, 0, 0);
+    }
     fadeInPixels(2000, 0, PIXEL_COUNT, 255, 255, 255);
 }
 
@@ -155,7 +162,7 @@ void loop()
     }
     else
     {
-        updateButtonState();
+        uint16_t buttonState = readButtonState();
         if (buttonState != 0)
         {
             lock.tryStep(buttonState);
