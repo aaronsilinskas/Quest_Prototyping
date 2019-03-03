@@ -1,7 +1,7 @@
-
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_FreeTouch.h>
+#include <Quest_ComboLock.h>
 
 const uint32_t BUTTON_PINS[] = {A1, A2, A3, A4, A5};
 const uint8_t BUTTON_COUNT = sizeof(BUTTON_PINS) / sizeof(BUTTON_PINS[0]);
@@ -10,20 +10,13 @@ Adafruit_FreeTouch qts[BUTTON_COUNT];
 uint16_t restingButtonMeasurement[BUTTON_COUNT];
 uint16_t buttonState;
 
-const uint8_t PASSWORD_LENGTH = 4;
-uint8_t password[PASSWORD_LENGTH];
-uint8_t passwordPosition;
+const uint8_t EVENT_QUEUE_SIZE = 10;
+Event eventQueueBuffer[EVENT_QUEUE_SIZE];
+Quest_EventQueue eventQueue = Quest_EventQueue(eventQueueBuffer, EVENT_QUEUE_SIZE, 0, 0);
 
-enum GameState
-{
-    WaitingForPlayer,
-    ButtonPressed,
-    CorrectButton,
-    IncorrectButton,
-    WaitingForRelease,
-    Unlocked
-};
-GameState gameState;
+const uint8_t PASSWORD_LENGTH = 4;
+uint16_t password[PASSWORD_LENGTH];
+Quest_ComboLock lock = Quest_ComboLock(password, PASSWORD_LENGTH, &eventQueue);
 
 const uint16_t PIXEL_COUNT = 7;
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXEL_COUNT, 12, NEO_GRB + NEO_KHZ800);
@@ -46,7 +39,7 @@ void setupButtons()
     buttonState = 0;
 }
 
-void setupPassword()
+void setupLock()
 {
     randomSeed(analogRead(0));
 
@@ -58,8 +51,6 @@ void setupPassword()
         Serial.print(password[i]);
     }
     Serial.println();
-
-    passwordPosition = 0;
 }
 
 void setupLights()
@@ -73,20 +64,8 @@ void setupLights()
 void setup()
 {
     setupButtons();
-    setupPassword();
+    setupLock();
     setupLights();
-
-    gameState = WaitingForPlayer;
-}
-
-void updateGameState(GameState newState)
-{
-    Serial.print(F("State change from "));
-    Serial.print(gameState);
-    Serial.print(F(" to "));
-    Serial.println(newState);
-
-    gameState = newState;
 }
 
 void updateButtonState()
@@ -137,26 +116,18 @@ void fadeInPixels(uint64_t transitionTime, uint16_t firstPixel, uint16_t pixelCo
     }
 }
 
-void updateLightsForProgress()
+void updateLightsForProgress(uint8_t position, uint8_t length)
 {
-    if (passwordPosition < PASSWORD_LENGTH)
+    uint16_t pixelsToLight = PIXEL_COUNT * position / length;
+    uint16_t firstPixel = 0;
+    for (uint16_t i = 0; i < pixelsToLight; i++)
     {
-        uint16_t pixelsToLight = PIXEL_COUNT * passwordPosition / PASSWORD_LENGTH;
-        uint16_t firstPixel = 0;
-        for (uint16_t i = 0; i < pixelsToLight; i++)
+        if (pixels.getPixelColor(i) != 0)
         {
-            if (pixels.getPixelColor(i) != 0)
-            {
-                firstPixel++;
-            }
+            firstPixel++;
         }
-        fadeInPixels(1000, firstPixel, pixelsToLight - firstPixel, 0, 255, 32);
     }
-    else
-    {
-        fadeInPixels(2000, 0, PIXEL_COUNT, 255, 255, 255);
-    }
-    pixels.show();
+    fadeInPixels(1000, firstPixel, pixelsToLight - firstPixel, 0, 255, 32);
 }
 
 void updateLightsForReset()
@@ -169,74 +140,50 @@ void updateLightsForReset()
     pixels.show();
 }
 
+void updateLightsForUnlock()
+{
+    fadeInPixels(2000, 0, PIXEL_COUNT, 255, 255, 255);
+}
+
 void loop()
 {
-    switch (gameState)
+    if (lock.unlocked)
     {
-    case WaitingForPlayer:
+        // wait for a bit then lock it
+        delay(2000);
+        lock.lock();
+    }
+    else
+    {
         updateButtonState();
         if (buttonState != 0)
         {
-            updateGameState(ButtonPressed);
+            lock.tryStep(buttonState);
         }
+    }
 
-        break;
-    case ButtonPressed:
-        Serial.print(F("Expected button state: "));
-        Serial.println(password[passwordPosition], BIN);
-        Serial.print(F("Actual state: "));
-        Serial.println(buttonState, BIN);
-
-        if (password[passwordPosition] == buttonState)
+    Event next;
+    while (eventQueue.poll(&next))
+    {
+        if (next.eventID == QE_ID_PROGRESS)
         {
-            updateGameState(CorrectButton);
+            if (next.data[0] == 0)
+            {
+                updateLightsForReset();
+            }
+            else
+            {
+                updateLightsForProgress(next.data[0], next.data[1]);
+            }
         }
-        else
+        else if (next.eventID == QE_ID_UNLOCKED)
         {
-            updateGameState(IncorrectButton);
+            updateLightsForUnlock();
         }
-        break;
-    case CorrectButton:
-        Serial.println("Correct Button!");
-
-        passwordPosition++;
-        updateLightsForProgress();
-
-        if (passwordPosition < PASSWORD_LENGTH)
+        else if (next.eventID == QE_ID_LOCKED)
         {
-            updateGameState(WaitingForRelease);
+            pixels.clear();
+            pixels.show();
         }
-        else
-        {
-            updateGameState(Unlocked);
-        }
-
-        break;
-    case IncorrectButton:
-        Serial.println("Incorrect Button!");
-
-        passwordPosition = 0;
-
-        updateLightsForReset();
-
-        updateGameState(WaitingForRelease);
-        break;
-    case WaitingForRelease:
-        updateButtonState();
-        if (buttonState == 0)
-        {
-            updateGameState(WaitingForPlayer);
-        }
-        break;
-    case Unlocked:
-        Serial.println("UNLOCKED!");
-
-        passwordPosition = 0;
-        delay(2000);
-        pixels.clear();
-        pixels.show();
-
-        updateGameState(WaitingForPlayer);
-        break;
     }
 }
