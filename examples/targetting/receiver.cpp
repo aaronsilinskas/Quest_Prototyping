@@ -29,8 +29,20 @@ void setup()
     irReceiver.enableBlink(true);
 
     pixels.begin();
+    pixels.setBrightness(16);
     pixels.show();
 }
+
+void setPixelColor(int pixel, uint8_t maxNoise) {
+    Serial.print("Noise: ");
+    Serial.println(maxNoise);
+
+    uint8_t minNoise = 50;
+    uint16_t clippedNoise = 255 * (maxNoise - minNoise) / (255 - minNoise);
+    pixels.setPixelColor(pixel, pixels.Color(clippedNoise, 255-clippedNoise, 0));
+}
+
+int nextPixel = 0;
 
 void loop()
 {
@@ -67,12 +79,15 @@ void loop()
             Serial.println(" Data:");
             printBinaryArray(event.data, (event.dataLengthInBits / 8) + 1, " ");
 
-            byte counter = event.data[0];
-            int pixel = counter / PIXEL_COUNT;
-            if (pixels.getPixelColor(pixel) > 0) {
-                pixels.setPixelColor(pixel, 0);
-            } else {
-                pixels.setPixelColor(pixel, pixels.Color(0, 128, 0));
+            if (nextPixel == 0) {
+                pixels.clear();
+            }
+            setPixelColor(nextPixel, irReceiver.decodeMaxNoise);
+            pixels.show();
+
+            nextPixel += 1;
+            if (nextPixel >= PIXEL_COUNT) {
+                nextPixel = 0;
             }
         }
 
