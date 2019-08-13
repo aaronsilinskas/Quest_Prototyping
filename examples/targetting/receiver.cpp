@@ -16,8 +16,8 @@ Quest_EventDecoder eventDecoder = Quest_EventDecoder(irReceiver.decodedBits, QIR
 
 Event event;
 
-#define PIXEL_PIN    10
-#define PIXEL_COUNT  12
+#define PIXEL_PIN 10
+#define PIXEL_COUNT 12
 Adafruit_NeoPixel pixels(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 void setup()
@@ -26,20 +26,25 @@ void setup()
 
     // start to listen for IR signals on the given pin
     irReceiver.begin(PIN_IR_RECEIVER);
-    irReceiver.enableBlink(true);
+    //irReceiver.enableBlink(true);
 
     pixels.begin();
     pixels.setBrightness(16);
     pixels.show();
 }
 
-void setPixelColor(int pixel, uint8_t maxNoise) {
+void setPixelColor(int pixel, uint8_t maxNoise)
+{
     Serial.print("Noise: ");
     Serial.println(maxNoise);
 
-    uint8_t minNoise = 50;
-    uint16_t clippedNoise = 255 * (maxNoise - minNoise) / (255 - minNoise);
-    pixels.setPixelColor(pixel, pixels.Color(clippedNoise, 255-clippedNoise, 0));
+    uint8_t minNoise = 60;
+    uint16_t clippedNoise = 0;
+    if (maxNoise > minNoise)
+    {
+        clippedNoise = 255 * (maxNoise - minNoise) / (255 - minNoise);
+    }
+    pixels.setPixelColor(pixel, pixels.Color(clippedNoise, 255 - clippedNoise, 0));
 }
 
 int nextPixel = 0;
@@ -50,26 +55,27 @@ void loop()
     if (irReceiver.hasSignal())
     {
         // data was received, dump it to Serial
-        irReceiver.printRawSignal();
+        // irReceiver.printRawSignal();
 
         // output the received bits
-        Serial.print("Received ");
-        Serial.print(irReceiver.decodedBitCount);
-        Serial.print(" bits: ");
+        // Serial.print("Received ");
+        // Serial.print(irReceiver.decodedBitCount);
+        // Serial.print(" bits: ");
 
-        uint8_t bytesWithData = irReceiver.decodedBitCount / 8;
-        if (irReceiver.decodedBitCount % 8 > 0)
-        {
-            bytesWithData++;
-        }
+        // uint8_t bytesWithData = irReceiver.decodedBitCount / 8;
+        // if (irReceiver.decodedBitCount % 8 > 0)
+        // {
+        //     bytesWithData++;
+        // }
 
-        Serial.print("Bytes with data: ");
-        Serial.println(bytesWithData);
+        // Serial.print("Bytes with data: ");
+        // Serial.println(bytesWithData);
 
-        printBinaryArray(irReceiver.decodedBits, bytesWithData, " ");
+        // printBinaryArray(irReceiver.decodedBits, bytesWithData, " ");
 
         EventDecodeResult result = eventDecoder.decodeEvent(irReceiver.decodedBitCount, &event);
-        if (result == EventDecoded) {
+        if (result == EventDecoded)
+        {
             Serial.print("Decoded event: Team=");
             Serial.print(event.teamID);
             Serial.print(" Player=");
@@ -79,18 +85,19 @@ void loop()
             Serial.println(" Data:");
             printBinaryArray(event.data, (event.dataLengthInBits / 8) + 1, " ");
 
-            if (nextPixel == 0) {
+            if (nextPixel == 0)
+            {
                 pixels.clear();
             }
             setPixelColor(nextPixel, irReceiver.decodeMaxNoise);
             pixels.show();
 
             nextPixel += 1;
-            if (nextPixel >= PIXEL_COUNT) {
+            if (nextPixel >= PIXEL_COUNT)
+            {
                 nextPixel = 0;
             }
         }
-
 
         // make sure the receiver is reset to decode the next signal
         irReceiver.reset();
