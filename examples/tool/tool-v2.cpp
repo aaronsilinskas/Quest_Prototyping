@@ -3,10 +3,14 @@
  *
  */
 
+#include <Wire.h>
+#include <SPI.h>
 #include <Quest_IR_Transmitter.h>
 #include <Quest_EventEncoder.h>
 #include <Quest_IR_Receiver.h>
 #include <Quest_EventDecoder.h>
+#include <Adafruit_LIS3DH.h>
+#include <Adafruit_Sensor.h>
 
 // Update these values if testing on multiple devices
 #define TEAM_ID 1
@@ -26,6 +30,13 @@ Quest_IR_Receiver irReceiver;
 Quest_EventDecoder eventDecoder = Quest_EventDecoder(irReceiver.decodedBits, QIR_BUFFER_SIZE);
 Event eventReceived;
 
+// Accelerometer
+Adafruit_LIS3DH lisIMU = Adafruit_LIS3DH();
+// Adjust this number for the sensitivity of the 'click' force
+// this strongly depend on the range! for 16G, try 5-10
+// for 8G, try 10-20. for 4G try 20-40. for 2G try 40-80
+#define CLICKTHRESHHOLD 80
+
 void setupTrigger()
 {
     pinMode(PIN_TRIGGER, INPUT_PULLUP);
@@ -41,6 +52,21 @@ void setupIR()
     eventToSend.playerID = PLAYER_ID;
 }
 
+void setupIMU()
+{
+    if (!lisIMU.begin(0x18))
+    {
+        Serial.println("Could not start LIS3DH!");
+        return;
+    }
+    lisIMU.setRange(LIS3DH_RANGE_2_G);
+    // 0 = turn off click detection & interrupt
+    // 1 = single click only interrupt output
+    // 2 = double click only interrupt output, detect single click
+    // Adjust threshhold, higher numbers are less sensitive
+    lisIMU.setClick(2, CLICKTHRESHHOLD);
+}
+
 void setup()
 {
     Serial.begin(9600);
@@ -50,21 +76,34 @@ void setup()
 
     Serial.println("Setting up IR...");
     setupIR();
+
+    Serial.println("Setting up accelerometer...");
+    setupIMU();
 }
 
 bool isTriggered()
 {
     static uint64_t lastTrigger = 0;
 
+    uint64_t currentTime = millis();
+    if (currentTime - lastTrigger < 250)
+    {
+        return false;
+    }
+
     if (digitalRead(PIN_TRIGGER) == 0)
     {
-        uint64_t currentTime = millis();
-        if (currentTime - lastTrigger > 250)
-        {
-            lastTrigger = currentTime;
-            return true;
-        }
+        lastTrigger = millis();
+        return true;
     }
+
+    uint8_t click = lisIMU.getClick();
+    if (click & 0x20)
+    {
+        lastTrigger = millis();
+        return true;
+    }
+
     return false;
 }
 
