@@ -102,6 +102,15 @@ void sendPingWithCount(uint8_t count)
     sendEvent();
 }
 
+void toneCheck()
+{
+    tone(A0, 64, 50);
+    delay(50);
+    tone(A0, 92, 50);
+    delay(50);
+    tone(A0, 128, 50);
+}
+
 bool hasReceivedEvents()
 {
     // check to see if the receiver decoded a signal
@@ -136,13 +145,14 @@ void loop()
 {
     static uint8_t count = 0;
 
-    if (isTriggered()) {
+    if (isTriggered())
+    {
         sendPingWithCount(count);
         count++; // will overflow to 0
     }
 
     if (hasReceivedEvents())
     {
-        //tone(A0, 64, 1000);
+        toneCheck();
     }
 }
