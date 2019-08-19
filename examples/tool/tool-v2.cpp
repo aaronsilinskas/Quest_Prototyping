@@ -11,6 +11,7 @@
 #include <Quest_EventDecoder.h>
 #include <Adafruit_LIS3DH.h>
 #include <Adafruit_Sensor.h>
+#include <Adafruit_NeoPixel.h>
 
 // Update these values if testing on multiple devices
 #define TEAM_ID 1
@@ -36,6 +37,11 @@ Adafruit_LIS3DH lisIMU = Adafruit_LIS3DH();
 // this strongly depend on the range! for 16G, try 5-10
 // for 8G, try 10-20. for 4G try 20-40. for 2G try 40-80
 #define CLICKTHRESHHOLD 80
+
+// NeoPixels
+#define PIXEL_PIN 12
+#define PIXEL_COUNT 12
+Adafruit_NeoPixel pixels(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 void setupTrigger()
 {
@@ -67,6 +73,13 @@ void setupIMU()
     lisIMU.setClick(2, CLICKTHRESHHOLD);
 }
 
+void setupNeoPixels()
+{
+    pixels.begin();
+    pixels.setBrightness(16);
+    pixels.show();
+}
+
 void setup()
 {
     Serial.begin(9600);
@@ -79,6 +92,9 @@ void setup()
 
     Serial.println("Setting up accelerometer...");
     setupIMU();
+
+    Serial.println("Setting up NeoPixels...");
+    setupNeoPixels();
 }
 
 bool isTriggered()
@@ -180,6 +196,26 @@ bool hasReceivedEvents()
     return false;
 }
 
+void updateNeoPixels() {
+    static uint8_t pixel = 0;
+    static uint64_t lastChange = 0;
+    if (millis() - lastChange > 500) {
+        lastChange = millis();
+
+        if (pixels.getPixelColor(pixel) > 0) {
+            pixels.setPixelColor(pixel, 0);
+        } else {
+            pixels.setPixelColor(pixel, pixels.Color(128, 0, 128));
+        }
+
+        pixels.show();
+        pixel ++;
+        if (pixel >= PIXEL_COUNT) {
+            pixel = 0;
+        }
+    }
+}
+
 void loop()
 {
     static uint8_t count = 0;
@@ -194,4 +230,6 @@ void loop()
     {
         toneCheck();
     }
+
+    //updateNeoPixels();
 }
