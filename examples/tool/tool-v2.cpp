@@ -18,7 +18,7 @@
 #define PLAYER_ID 3
 
 // Trigger
-const int PIN_TRIGGER = A5;
+#define PIN_TRIGGER A5
 
 // IR Transmitter
 Quest_IR_Transmitter irTransmitter;
@@ -33,15 +33,19 @@ Event eventReceived;
 
 // Accelerometer
 Adafruit_LIS3DH lisIMU = Adafruit_LIS3DH();
+bool imuEnabled = false;
 // Adjust this number for the sensitivity of the 'click' force
 // this strongly depend on the range! for 16G, try 5-10
 // for 8G, try 10-20. for 4G try 20-40. for 2G try 40-80
 #define CLICKTHRESHHOLD 80
 
 // NeoPixels
-#define PIXEL_PIN 12
+#define PIN_PIXELS 5
 #define PIXEL_COUNT 12
-Adafruit_NeoPixel pixels(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel pixels(PIXEL_COUNT, PIN_PIXELS, NEO_GRB + NEO_KHZ800);
+
+// Sound
+#define PIN_PIEZO 9
 
 void setupTrigger()
 {
@@ -71,6 +75,7 @@ void setupIMU()
     // 2 = double click only interrupt output, detect single click
     // Adjust threshhold, higher numbers are less sensitive
     lisIMU.setClick(2, CLICKTHRESHHOLD);
+    imuEnabled = true;
 }
 
 void setupNeoPixels()
@@ -78,6 +83,10 @@ void setupNeoPixels()
     pixels.begin();
     pixels.setBrightness(16);
     pixels.show();
+}
+
+void setupSound() {
+    pinMode(PIN_PIEZO, OUTPUT);
 }
 
 void setup()
@@ -95,6 +104,9 @@ void setup()
 
     Serial.println("Setting up NeoPixels...");
     setupNeoPixels();
+
+    Serial.println("Setting up sound...");
+    setupSound();
 }
 
 bool isTriggered()
@@ -113,9 +125,15 @@ bool isTriggered()
         return true;
     }
 
+    if (!imuEnabled)
+    {
+        return false;
+    }
+
     uint8_t click = lisIMU.getClick();
     if (click & 0x20)
     {
+        Serial.println("Double tap!");
         lastTrigger = millis();
         return true;
     }
@@ -159,11 +177,13 @@ void sendPingWithCount(uint8_t count)
 
 void toneCheck()
 {
-    tone(A0, 64, 50);
+    tone(PIN_PIEZO, 64, 50);
     delay(50);
-    tone(A0, 92, 50);
+    tone(PIN_PIEZO, 92, 50);
     delay(50);
-    tone(A0, 128, 50);
+    tone(PIN_PIEZO, 128, 50);
+    delay(50);
+    noTone(PIN_PIEZO);
 }
 
 bool hasReceivedEvents()
@@ -196,23 +216,28 @@ bool hasReceivedEvents()
     return false;
 }
 
-void updateNeoPixels() {
+void updateNeoPixels()
+{
     static uint8_t pixel = 0;
-    static uint64_t lastChange = 0;
-    if (millis() - lastChange > 500) {
-        lastChange = millis();
 
-        if (pixels.getPixelColor(pixel) > 0) {
-            pixels.setPixelColor(pixel, 0);
-        } else {
-            pixels.setPixelColor(pixel, pixels.Color(128, 0, 128));
-        }
+    if (PIXEL_COUNT == 0) {
+        return;
+    }
 
-        pixels.show();
-        pixel ++;
-        if (pixel >= PIXEL_COUNT) {
-            pixel = 0;
-        }
+    if (pixels.getPixelColor(pixel) > 0)
+    {
+        pixels.setPixelColor(pixel, 0);
+    }
+    else
+    {
+        pixels.setPixelColor(pixel, pixels.Color(128, 0, 128));
+    }
+
+    pixels.show();
+    pixel++;
+    if (pixel >= PIXEL_COUNT)
+    {
+        pixel = 0;
     }
 }
 
@@ -229,7 +254,6 @@ void loop()
     if (hasReceivedEvents())
     {
         toneCheck();
+        updateNeoPixels();
     }
-
-    //updateNeoPixels();
 }
