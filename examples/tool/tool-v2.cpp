@@ -11,7 +11,7 @@
 #include <Quest_EventDecoder.h>
 #include <Adafruit_LIS3DH.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_NeoPixel.h>
+#include <FastLED.h>
 
 // Update these values if testing on multiple devices
 #define TEAM_ID 1
@@ -42,7 +42,7 @@ bool imuEnabled = false;
 // NeoPixels
 #define PIN_PIXELS 5
 #define PIXEL_COUNT 12
-Adafruit_NeoPixel pixels(PIXEL_COUNT, PIN_PIXELS, NEO_GRB + NEO_KHZ800);
+CRGB pixels[PIXEL_COUNT];
 
 // Sound
 #define PIN_PIEZO 9
@@ -80,12 +80,13 @@ void setupIMU()
 
 void setupNeoPixels()
 {
-    pixels.begin();
-    pixels.setBrightness(16);
-    pixels.show();
+    FastLED.addLeds<NEOPIXEL, PIN_PIXELS>(pixels, PIXEL_COUNT);
+    FastLED.setBrightness(4);
+    FastLED.show();
 }
 
-void setupSound() {
+void setupSound()
+{
     pinMode(PIN_PIEZO, OUTPUT);
 }
 
@@ -220,20 +221,28 @@ void updateNeoPixels()
 {
     static uint8_t pixel = 0;
 
-    if (PIXEL_COUNT == 0) {
+    if (PIXEL_COUNT == 0)
+    {
         return;
     }
 
-    if (pixels.getPixelColor(pixel) > 0)
+    if (pixels[pixel] == (CRGB)CRGB::Black)
     {
-        pixels.setPixelColor(pixel, 0);
+        uint8_t maxNoise = irReceiver.decodeMaxNoise;
+        uint8_t minNoise = 60;
+        uint16_t clippedNoise = 0;
+        if (maxNoise > minNoise)
+        {
+            clippedNoise = 255 * (maxNoise - minNoise) / (255 - minNoise);
+        }
+        pixels[pixel] = CRGB(clippedNoise, 255 - clippedNoise, 0) / 2;
     }
     else
     {
-        pixels.setPixelColor(pixel, pixels.Color(128, 0, 128));
+        pixels[pixel] = CRGB::Black;
     }
+    FastLED.show();
 
-    pixels.show();
     pixel++;
     if (pixel >= PIXEL_COUNT)
     {
