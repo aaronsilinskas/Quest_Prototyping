@@ -21,9 +21,10 @@ Event event;
 
 DFRobotDFPlayerMini soundPlayer;
 
-#define PIN_LEDS 10
+#define PIN_LEDS 5
 #define LED_COUNT 12
 CRGB leds[LED_COUNT];
+CRGB dotstar[1];
 
 CRGBPalette16 ledsPalette;
 bool ledsReverseDirection;
@@ -59,12 +60,12 @@ void setup()
     FastLED.setCorrection(TypicalLEDStrip);
     FastLED.setDither(1);
     FastLED.setBrightness(64);
-    FastLED.show();
 
     // turn off dotstar
-    CRGB dotstar[1];
     FastLED.addLeds<DOTSTAR, 8, 6, GBR>(dotstar, 1);
     dotstar[0] = CRGB::Black;
+
+    FastLED.show();
 }
 
 bool isManuallyTriggered()
