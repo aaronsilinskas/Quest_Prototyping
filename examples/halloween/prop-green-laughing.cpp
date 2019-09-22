@@ -9,7 +9,7 @@
 #include <DFRobotDFPlayerMini.h>
 
 // NOTE: CHANGE THIS FOR EACH PROP OR SHARE ID FOR MULTI-TRIGGER
-const byte ID_PLAYER = 1;
+const byte ID_PLAYER = 2;
 
 const int PIN_MANUAL_TRIGGER = A0;
 
