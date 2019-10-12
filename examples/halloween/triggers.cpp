@@ -4,15 +4,16 @@
  */
 
 #include <Quest_IR_Transmitter.h>
+#include <Quest_Trigger.h>
 #include "Quest_EventEncoder.h"
 
-// NOTE: CHANGE THIS FOR EACH PROP OR SHARE ID FOR MULTI-TRIGGER
 const int PIN_HARD_BUTTON = 9;
+Quest_Trigger hardButton = Quest_Trigger(PIN_HARD_BUTTON, false, 50);
 const int PIN_SOFT_BUTTON = 10;
+Quest_Trigger softButton = Quest_Trigger(PIN_SOFT_BUTTON, false, 50);
 const int PIN_ALLIGATOR_CLIP = 11;
+Quest_Trigger alligatorButton = Quest_Trigger(PIN_ALLIGATOR_CLIP, false, 50);
 const int MAX_PIN = 11;
-
-bool lastButtonState[MAX_PIN + 1];
 
 // IR
 Quest_IR_Transmitter irTransmitter;
@@ -36,35 +37,6 @@ void setup()
     event.dataLengthInBits = 0;
 }
 
-bool isTriggered(int pin)
-{
-    static long lastPress = millis();
-
-    if (millis() - lastPress < 500)
-    {
-        return false;
-    }
-
-    int currentState = digitalRead(pin);
-    if (currentState == HIGH)
-    {
-        if (!lastButtonState[pin]) {
-            Serial.println("Released");
-        }
-        lastButtonState[pin] = true;
-        return false;
-    }
-
-    if (!lastButtonState[pin])
-    {
-        return false;
-    }
-
-    lastPress = millis();
-    lastButtonState[pin] = false;
-    return true;
-}
-
 void sendEvent(byte playerId)
 {
     event.playerID = playerId;
@@ -81,16 +53,19 @@ void sendEvent(byte playerId)
 
 void loop()
 {
-    if (isTriggered(PIN_HARD_BUTTON))
+    if (hardButton.isTriggered())
     {
         sendEvent(1);
+        delay(500);
     }
-    else if (isTriggered(PIN_SOFT_BUTTON))
+    else if (softButton.isTriggered())
     {
         sendEvent(2);
+        delay(500);
     }
-    else if (isTriggered(PIN_ALLIGATOR_CLIP))
+    else if (alligatorButton.isTriggered())
     {
         sendEvent(3);
+        delay(500);
     }
 }
