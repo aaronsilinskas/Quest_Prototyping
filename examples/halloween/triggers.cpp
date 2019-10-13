@@ -56,16 +56,16 @@ void loop()
     if (hardButton.isTriggered())
     {
         sendEvent(1);
-        delay(500);
+        hardButton.delayNextTrigger(500);
     }
     else if (softButton.isTriggered())
     {
         sendEvent(2);
-        delay(500);
+        softButton.delayNextTrigger(500);
     }
     else if (alligatorButton.isTriggered())
     {
         sendEvent(3);
-        delay(500);
+        alligatorButton.delayNextTrigger(500);
     }
 }
