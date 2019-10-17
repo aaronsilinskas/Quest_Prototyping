@@ -4,6 +4,7 @@
  */
 
 #include <Quest_IR_Receiver.h>
+#include <Quest_Trigger.h>
 #include "Quest_EventDecoder.h"
 #include <FastLED.h>
 #include <DFRobotDFPlayerMini.h>
@@ -13,6 +14,7 @@
 const byte ID_PLAYER = 1;
 
 const int PIN_MANUAL_TRIGGER = A0;
+Quest_Trigger manualTrigger = Quest_Trigger(PIN_MANUAL_TRIGGER, false, 50);
 
 const int PIN_IR_RECEIVER = 7;
 Quest_IR_Receiver irReceiver;
@@ -72,31 +74,6 @@ void setup()
     } else {
         Serial.println(F("DFPlayer Mini ready."));
     }
-}
-
-bool isManuallyTriggered()
-{
-    static long lastPress = millis();
-    static int lastState = false;
-
-    if (millis() - lastPress < 250)
-    {
-        return false;
-    }
-
-    int currentState = digitalRead(PIN_MANUAL_TRIGGER);
-    if (currentState == 0 && lastState == 1)
-    {
-        lastPress = millis();
-        lastState = 0;
-        return true;
-    }
-    else if (currentState == 1)
-    {
-        lastState = 1;
-        return false;
-    }
-    return false;
 }
 
 void playEerieGreenGlow()
@@ -199,9 +176,10 @@ void loop()
         FastLED.delay(LED_MINIMUM_FRAME_DELAY);
     }
 
-    if (isManuallyTriggered())
+    if (manualTrigger.isTriggered())
     {
         togglePlayingEffect();
+        manualTrigger.delayNextTrigger(250);
     }
 
     // check to see if the receiver decoded a signal
