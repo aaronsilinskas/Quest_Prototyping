@@ -73,6 +73,33 @@ void effectHit()
     delay(5);
 }
 
+void effectMiss()
+{
+    Serial.println(F("Effect: Hit"));
+    pinMode(PIN_SENSOR, OUTPUT);
+    delay(5);
+    tone(PIN_SENSOR, 1912 / 2, 250);
+    for (int i = 0; i < LED_COUNT; i++)
+    {
+        leds[i] = CRGB::Red / 4;
+    }
+    for (int c = 0; c <= 255; c += 2)
+    {
+        for (int i = 0; i < LED_COUNT; i++)
+        {
+            leds[i].fadeToBlackBy(c);
+        }
+
+        FastLED.show();
+        FastLED.delay(1);
+    }
+    delay(5);
+    analogWrite(PIN_SENSOR, 0);
+    delay(5);
+    pinMode(PIN_SENSOR, INPUT);
+    delay(5);
+}
+
 void startMining(uint64_t currentTimeMs, uint32_t sensorValue)
 {
     Serial.print(F("Start mining : "));
@@ -103,9 +130,13 @@ void scoreHit(uint64_t currentTimeMs, uint32_t sensorValue)
 
         Serial.print(F("Score: "));
         Serial.println(score);
-    }
 
-    effectHit();
+        effectHit();
+    }
+    else
+    {
+        effectMiss();
+    }
 }
 
 bool isMiningComplete()
