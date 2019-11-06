@@ -2,8 +2,14 @@
  *
  */
 #include <Arduino.h>
+#include <FastLED.h>
 
-#define HIT_THRESHOLD 100
+#define PIN_NEOPIXELS 5
+#define LED_COUNT 12
+CRGB leds[LED_COUNT];
+#define LED_BRIGHTNESS 128
+
+#define HIT_THRESHOLD 200
 const uint32_t PIN_SENSOR = A0;
 
 const uint64_t minBeforeNextHitMs = 250;
@@ -17,6 +23,12 @@ uint16_t score = 0;
 void setup()
 {
     Serial.begin(9600);
+
+    FastLED.addLeds<NEOPIXEL, PIN_NEOPIXELS>(leds, LED_COUNT);
+    FastLED.setCorrection(TypicalLEDStrip);
+    FastLED.setDither(1);
+    FastLED.setBrightness(LED_BRIGHTNESS);
+    FastLED.show();
 }
 
 bool isMiningStarted()
@@ -39,9 +51,21 @@ void effectHit()
     Serial.println(F("Effect: Hit"));
     pinMode(PIN_SENSOR, OUTPUT);
     delay(5);
-    uint32_t duration = 250;
-    tone(PIN_SENSOR, 1912, duration);
-    delay(duration);
+    tone(PIN_SENSOR, 1912, 250);
+    for (int i = 0; i < LED_COUNT; i++)
+    {
+        leds[i] = CRGB::White / 4;
+    }
+    for (int c = 0; c <= 255; c += 2)
+    {
+        for (int i = 0; i < LED_COUNT; i++)
+        {
+            leds[i].fadeToBlackBy(c);
+        }
+
+        FastLED.show();
+        FastLED.delay(1);
+    }
     delay(5);
     analogWrite(PIN_SENSOR, 0);
     delay(5);
@@ -136,5 +160,6 @@ void loop()
         stopMining();
     }
 
-    delay(1);
+    FastLED.show();
+    FastLED.delay(1);
 }
