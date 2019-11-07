@@ -7,12 +7,12 @@
 #define PIN_NEOPIXELS 5
 #define LED_COUNT 12
 CRGB leds[LED_COUNT];
-#define LED_BRIGHTNESS 128
+#define LED_BRIGHTNESS 32
 
 #define HIT_THRESHOLD 200
 const uint32_t PIN_SENSOR = A0;
 
-const uint64_t minBeforeNextHitMs = 250;
+const uint64_t minBeforeNextHitMs = 100;
 const int64_t idealHitMs = 1000;
 const uint64_t missMs = idealHitMs * 0.25;
 const uint64_t stopMiningMs = 3000;
