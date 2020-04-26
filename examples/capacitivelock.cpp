@@ -187,8 +187,9 @@ void loop()
     {
         sendIREvent(&next);
 
-        if (next.eventID == QE_ID_PROGRESS)
+        switch (next.eventID)
         {
+        case QE_ID_PROGRESS:
             if (next.data[0] == 0)
             {
                 updateLightsForReset();
@@ -197,15 +198,14 @@ void loop()
             {
                 updateLightsForProgress(next.data[0], next.data[1]);
             }
-        }
-        else if (next.eventID == QE_ID_UNLOCKED)
-        {
+            break;
+        case QE_ID_UNLOCKED:
             updateLightsForUnlock();
-        }
-        else if (next.eventID == QE_ID_LOCKED)
-        {
+            break;
+        case QE_ID_LOCKED:
             pixels.clear();
             pixels.show();
+            break;
         }
     }
 }
