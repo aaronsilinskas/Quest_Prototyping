@@ -17,7 +17,7 @@
 // hardware SPI
 //Adafruit_LIS3DH lis = Adafruit_LIS3DH(LIS3DH_CS);
 // I2C
-Adafruit_LIS3DH lis = Adafruit_LIS3DH(LIS3DH_CS);
+Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 
 // Adjust this number for the sensitivity of the 'click' force
 // this strongly depend on the range! for 16G, try 5-10
